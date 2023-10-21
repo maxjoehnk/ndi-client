@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 ndi = { path = "../ndi_rs_upstream/ndi" }
-winit = "0.28"
+winit = "0.29"
 color-eyre = "0.6"
 nannou = "0.18"
 nannou_egui = "0.5"

@@ -4,6 +4,7 @@ mod vertex;
 use texture::{Texture, TextureProvider};
 use vertex::Vertex;
 use wgpu::util::DeviceExt;
+use wgpu::StoreOp;
 
 pub const RECT_VERTICES: &[Vertex] = &[
     Vertex {
@@ -117,7 +118,7 @@ impl WgpuImageRenderer {
         let view = texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        self.texture.render(&queue, texture_provider)?;
+        self.texture.render(queue, texture_provider)?;
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {
@@ -133,10 +134,12 @@ impl WgpuImageRenderer {
                             b: 0.0,
                             a: 0.0,
                         }),
-                        store: true,
+                        store: StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
             });
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

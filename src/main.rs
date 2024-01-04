@@ -9,10 +9,11 @@ use tracing::metadata::LevelFilter;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 use wgpu::PresentMode;
 use winit::event::Event;
-use winit::event::{VirtualKeyCode, WindowEvent};
-use winit::event_loop::EventLoop;
+use winit::event::WindowEvent;
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::keyboard::{Key, NamedKey};
 use winit::monitor::MonitorHandle;
-use winit::window::{Fullscreen, Window, WindowBuilder, WindowId};
+use winit::window::{Window, WindowBuilder, WindowId};
 
 use crate::config::Config;
 use crate::image_renderer::WgpuImageRenderer;
@@ -42,11 +43,12 @@ async fn main() -> color_eyre::Result<()> {
     tracing::debug!("Initializing NDI");
     ndi::initialize().context("initializing ndi")?;
 
-    let event_loop = winit::event_loop::EventLoop::new();
+    let event_loop = winit::event_loop::EventLoop::new()?;
 
     let mut model = Model::new(config, &event_loop).await?;
 
-    event_loop.run(move |event, _, control_flow| {
+    event_loop.run(move |event, target| {
+        target.set_control_flow(ControlFlow::Poll);
         if let Ok(sources) = model.source_recv.try_recv() {
             model.sources = sources;
         }
@@ -58,32 +60,42 @@ async fn main() -> color_eyre::Result<()> {
             } => {
                 if let Some(screen) = model.screens.get_mut(&window_id) {
                     match event {
-                        WindowEvent::KeyboardInput { input, .. }
-                            if matches!(input.virtual_keycode, Some(VirtualKeyCode::F12)) =>
+                        WindowEvent::KeyboardInput { event, .. }
+                            if matches!(event.logical_key, Key::Named(NamedKey::F12)) =>
                         {
                             screen.ui_open = !screen.ui_open;
                         }
-                        WindowEvent::KeyboardInput { input, .. }
-                            if matches!(input.virtual_keycode, Some(VirtualKeyCode::Escape)) =>
+                        WindowEvent::KeyboardInput { event, .. }
+                            if matches!(event.logical_key, Key::Named(NamedKey::Escape)) =>
                         {
-                            control_flow.set_exit();
+                            return;
                         }
-                        WindowEvent::Resized(size) => screen.image_renderer.resize(&model.device, size.width, size.height),
+                        WindowEvent::Resized(size) => {
+                            if size.width > 0 && size.height > 0 {
+                                screen
+                                    .image_renderer
+                                    .resize(&model.device, size.width, size.height)
+                            }
+                        }
+                        WindowEvent::RedrawRequested => {
+                            if let Some(screen) = model.screens.get_mut(&window_id) {
+                                if let Err(err) =
+                                    screen.draw(&model.device, &model.queue, &model.sources)
+                                {
+                                    tracing::error!(error = ?err, "Failed to draw screen");
+                                }
+                            };
+                        }
                         _ => {}
                     }
                     // screen.egui.handle_event(event);
                 }
             }
-            Event::RedrawRequested(window_id) => {
-                if let Some(screen) = model.screens.get_mut(&window_id) {
-                    if let Err(err) = screen.draw(&model.device, &model.queue, &model.sources) {
-                        tracing::error!(error = ?err, "Failed to draw screen");
-                    }
-                };
-            }
             _ => {}
         }
-    });
+    })?;
+
+    Ok(())
 }
 
 pub struct Model {
@@ -135,7 +147,9 @@ impl Model {
             ));
             window.set_cursor_visible(false);
             // window.set_fullscreen(Some(Fullscreen::Borderless(Some(monitor.clone()))));
-            let surface = unsafe { instance.create_surface(&window) }?;
+            let surface = unsafe {
+                instance.create_surface_unsafe(wgpu::SurfaceTargetUnsafe::from_window(&window)?)
+            }?;
 
             windows.push((window, surface, monitor));
         }
@@ -197,6 +211,7 @@ impl Model {
                 present_mode: PresentMode::Immediate,
                 alpha_mode: surface_caps.alpha_modes[0],
                 view_formats: vec![],
+                desired_maximum_frame_latency: 2,
             };
             surface.configure(&device, &config);
 

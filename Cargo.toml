@@ -5,11 +5,11 @@ edition = "2021"
 
 [dependencies]
 ndi = { path = "../ndi_rs_upstream/ndi" }
-winit = "0.28"
-wgpu = "0.18"
-egui = "0.24"
-egui-wgpu = { version = "0.24", features = ["winit"] }
-egui-winit = "0.24"
+winit = "0.29"
+wgpu = "0.19"
+egui = "0.26"
+egui-wgpu = { version = "0.26", features = ["winit"] }
+egui-winit = "0.26"
 raw-window-handle = "0.5"
 color-eyre = "0.6"
 tracing = "0.1"

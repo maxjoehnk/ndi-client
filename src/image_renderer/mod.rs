@@ -33,13 +33,13 @@ pub struct WgpuImageRenderer {
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     surface_config: wgpu::SurfaceConfiguration,
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'static>,
 }
 
 impl WgpuImageRenderer {
     pub fn new(
         device: &wgpu::Device,
-        surface: wgpu::Surface,
+        surface: wgpu::Surface<'static>,
         surface_config: wgpu::SurfaceConfiguration,
         estimated_size: (u32, u32),
     ) -> color_eyre::Result<Self> {

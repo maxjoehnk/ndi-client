@@ -11,4 +11,4 @@ nannou = "0.18"
 nannou_egui = "0.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-crossbeam-utils = "0.8"
+crossbeam-utils = "0.8.19"

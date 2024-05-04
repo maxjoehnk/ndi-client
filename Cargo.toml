@@ -9,6 +9,6 @@ winit = "0.28"
 color-eyre = "0.6"
 nannou = "0.18"
 nannou_egui = "0.5"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 crossbeam-utils = "0.8"

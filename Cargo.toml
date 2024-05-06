@@ -8,7 +8,7 @@ ndi = { path = "../ndi_rs_upstream/ndi" }
 winit = "0.28"
 color-eyre = "0.6"
 nannou = "0.18"
-nannou_egui = "0.5"
+nannou_egui = "0.19"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 crossbeam-utils = "0.8"

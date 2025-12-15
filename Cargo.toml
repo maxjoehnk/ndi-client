@@ -6,17 +6,17 @@ edition = "2021"
 [dependencies]
 ndi = { path = "../ndi_rs_upstream/ndi" }
 winit = "0.29"
-wgpu = "0.19"
-egui = "0.26"
-egui-wgpu = { version = "0.26", features = ["winit"] }
-egui-winit = "0.26"
-raw-window-handle = "0.5"
+wgpu = "27"
+#egui = "0.26"
+#egui-wgpu = { version = "0.26", features = ["winit"] }
+#egui-winit = "0.26"
+#raw-window-handle = "0.5"
 color-eyre = "0.6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 crossbeam-utils = "0.8"
-tokio = { version = "1.33", features = ["rt", "macros"] }
-image = { version = "0.24", features = [] }
-bytemuck = "1.14"
+tokio = { version = "1.48", features = ["rt", "macros"] }
+image = { version = "0.25", features = [] }
+bytemuck = { version = "1.24", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
-toml = "0.8"
+toml = "0.9"

@@ -7,7 +7,7 @@ use crossbeam_utils::atomic::AtomicCell;
 use image::DynamicImage;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
-use wgpu::PresentMode;
+use wgpu::{Features, PresentMode};
 use winit::event::Event;
 use winit::event::WindowEvent;
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -109,7 +109,7 @@ pub struct Model {
 
 impl Model {
     async fn new(config: Option<Config>, event_loop: &EventLoop<()>) -> color_eyre::Result<Model> {
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::VULKAN,
             ..Default::default()
         });
@@ -161,15 +161,14 @@ impl Model {
                 compatible_surface: windows.first().map(|(_, surface, _)| surface),
                 power_preference: wgpu::PowerPreference::HighPerformance,
             })
-            .await
-            .ok_or_else(|| color_eyre::eyre::eyre!("No compatible video adapter available"))?;
+            .await.context("No compatible video adapter available")?;
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     required_limits: wgpu::Limits::downlevel_defaults(),
+                    required_features: Features::PIPELINE_CACHE,
                     ..Default::default()
                 },
-                None,
             )
             .await?;
         let (source_tx, source_rx) = std::sync::mpsc::channel();

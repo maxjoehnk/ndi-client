@@ -4,7 +4,7 @@ mod vertex;
 use texture::{Texture, TextureProvider};
 use vertex::Vertex;
 use wgpu::util::DeviceExt;
-use wgpu::StoreOp;
+use wgpu::{PipelineCache, PipelineCacheDescriptor, StoreOp};
 
 pub const RECT_VERTICES: &[Vertex] = &[
     Vertex {
@@ -34,6 +34,7 @@ pub struct WgpuImageRenderer {
     index_buffer: wgpu::Buffer,
     surface_config: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface<'static>,
+    cache: PipelineCache,
 }
 
 impl WgpuImageRenderer {
@@ -45,6 +46,13 @@ impl WgpuImageRenderer {
     ) -> color_eyre::Result<Self> {
         let texture = Texture::new(device, estimated_size)?;
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
+        let cache = unsafe {
+            device.create_pipeline_cache(&PipelineCacheDescriptor {
+                label: None,
+                data: None,
+                fallback: false,
+            })
+        };
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -52,21 +60,24 @@ impl WgpuImageRenderer {
             push_constant_ranges: &[],
         });
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            cache: Some(&cache),
             label: None,
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers: &[Vertex::desc()],
+                compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: wgpu::TextureFormat::Bgra8UnormSrgb,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: Default::default(),
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -99,6 +110,7 @@ impl WgpuImageRenderer {
         });
 
         Ok(Self {
+            cache,
             texture,
             pipeline: render_pipeline,
             vertex_buffer,
@@ -136,6 +148,7 @@ impl WgpuImageRenderer {
                         }),
                         store: StoreOp::Store,
                     },
+                    depth_slice: None,
                 })],
                 depth_stencil_attachment: None,
                 timestamp_writes: None,

@@ -126,7 +126,15 @@ impl WgpuImageRenderer {
         queue: &wgpu::Queue,
         texture_provider: &mut impl TextureProvider,
     ) -> color_eyre::Result<()> {
-        let texture = self.surface.get_current_texture()?;
+        let texture = match self.surface.get_current_texture() {
+            Ok(texture) => texture,
+            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                tracing::debug!("Surface lost, recreating");
+                self.surface.configure(device, &self.surface_config);
+                self.surface.get_current_texture()?
+            }
+            Err(e) => return Err(e.into()),
+        };
         let view = texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());

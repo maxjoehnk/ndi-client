@@ -166,6 +166,7 @@ impl Model {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
+                    required_limits: wgpu::Limits::downlevel_defaults(),
                     ..Default::default()
                 },
                 None,

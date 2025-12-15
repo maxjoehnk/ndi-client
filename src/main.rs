@@ -13,7 +13,7 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::monitor::MonitorHandle;
-use winit::window::{Window, WindowBuilder, WindowId};
+use winit::window::{Fullscreen, Window, WindowBuilder, WindowId};
 
 use crate::config::Config;
 use crate::image_renderer::WgpuImageRenderer;
@@ -133,19 +133,20 @@ impl Model {
                     continue;
                 }
             }
-            let window = if let Ok(window) = WindowBuilder::new()
-                .with_fullscreen(Some(Fullscreen::Borderless(Some(monitor.clone()))))
-                .build(event_loop) {
-                window
-            }else {
-                WindowBuilder::new().build(event_loop)?
-            };
+        let window = if let Ok(window) = WindowBuilder::new()
+            .with_fullscreen(Some(Fullscreen::Borderless(Some(monitor.clone()))))
+            .build(event_loop)
+        {
+            window
+        } else {
+            WindowBuilder::new().build(event_loop)?
+        };
 
-            window.set_title(&format!(
-                "NDI Client {}",
-                monitor.name().unwrap_or_default()
-            ));
-            window.set_cursor_visible(false);
+        window.set_title(&format!(
+            "NDI Client {}",
+            monitor.name().unwrap_or_default()
+        ));
+        window.set_cursor_visible(false);
             // window.set_fullscreen(Some(Fullscreen::Borderless(Some(monitor.clone()))));
             let surface = unsafe {
                 instance.create_surface_unsafe(wgpu::SurfaceTargetUnsafe::from_window(&window)?)

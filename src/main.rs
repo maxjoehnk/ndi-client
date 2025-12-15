@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 
-use color_eyre::eyre::WrapErr;
+use color_eyre::eyre::Context;
 use crossbeam_utils::atomic::AtomicCell;
 use image::DynamicImage;
 use tracing::metadata::LevelFilter;
@@ -42,6 +42,17 @@ async fn main() -> color_eyre::Result<()> {
     tracing::subscriber::set_global_default(subscriber).context("tracing setup")?;
     tracing::debug!("Initializing NDI");
     ndi::initialize().context("initializing ndi")?;
+
+    let _awake = keep_active::Builder::default()
+        .app_name("ndi-client")
+        .app_reverse_domain("me.maxjoehnk.ndi-client")
+        .display(true)
+        .idle(true)
+        .sleep(true)
+        .create();
+    if let Err(err) = _awake {
+        tracing::warn!("Failed to keep display awake: {err}");
+    }
 
     let event_loop = winit::event_loop::EventLoop::new()?;
 

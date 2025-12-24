@@ -34,6 +34,7 @@ pub struct WgpuImageRenderer {
     index_buffer: wgpu::Buffer,
     surface_config: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface<'static>,
+    #[allow(dead_code)]
     cache: PipelineCache,
 }
 
@@ -57,7 +58,7 @@ impl WgpuImageRenderer {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[&texture.bind_group_layout],
-            push_constant_ranges: &[],
+            immediate_size: 0,
         });
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             cache: Some(&cache),
@@ -94,7 +95,7 @@ impl WgpuImageRenderer {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
-            multiview: None,
+            multiview_mask: None,
         });
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -161,6 +162,7 @@ impl WgpuImageRenderer {
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
+                multiview_mask: None,
             });
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

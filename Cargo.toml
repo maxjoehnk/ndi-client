@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ndi = { path = "../ndi_rs_upstream/ndi" }
+ndi = { git = "https://github.com/maxjoehnk/ndi-rs", branch = "feature/ndi-5" }
 winit = "0.29"
-wgpu = "27"
+wgpu = "28"
 #egui = "0.26"
 #egui-wgpu = { version = "0.26", features = ["winit"] }
 #egui-winit = "0.26"

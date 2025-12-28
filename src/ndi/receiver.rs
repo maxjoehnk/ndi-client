@@ -1,15 +1,8 @@
-use crate::VideoSender;
-use image::{self, DynamicImage, ImageBuffer, Pixel};
+use std::sync::mpsc::Receiver;
+use image::{DynamicImage, ImageBuffer, Pixel};
 use ndi::{FourCCVideoType, FrameType, Recv, RecvColorFormat, Source, VideoData};
-use std::sync::mpsc::{Receiver, Sender};
 
-#[derive(Debug, Clone)]
-pub struct NdiSource {
-    pub name: String,
-    pub source: Source,
-}
-
-pub fn recv_ndi(video_tx: VideoSender, rx: Receiver<Source>) -> color_eyre::Result<()> {
+pub fn recv_ndi(callback: impl Fn(DynamicImage), rx: Receiver<Source>) -> color_eyre::Result<()> {
     tracing::debug!("Setting up NDI receiver");
     let mut recv = ndi::recv::RecvBuilder::new()
         .color_format(RecvColorFormat::RGBX_RGBA)
@@ -20,9 +13,9 @@ pub fn recv_ndi(video_tx: VideoSender, rx: Receiver<Source>) -> color_eyre::Resu
     recv.connect(&source);
     tracing::info!("Connected to source {source:?}");
     loop {
-        tracing::debug!("Waiting for frame");
+        tracing::trace!("Waiting for frame");
         match recv_ndi_frame(&recv) {
-            Ok(image) => video_tx.store(Some(image)),
+            Ok(image) => callback(image),
             Err(err) => tracing::error!(error = ?err, "Error receiving frame"),
         }
 
@@ -35,37 +28,14 @@ pub fn recv_ndi(video_tx: VideoSender, rx: Receiver<Source>) -> color_eyre::Resu
     }
 }
 
-pub fn discover_sources(sender: Sender<Vec<NdiSource>>) -> color_eyre::Result<()> {
-    tracing::debug!("Setting up NDI finder");
-    let find = ndi::find::FindBuilder::new().build()?;
-
-    loop {
-        tracing::debug!("Finding NDI sources");
-        let sources = find.current_sources(u128::MAX)?;
-
-        tracing::info!("Found NDI sources: {sources:?}");
-
-        let sources = sources
-            .into_iter()
-            .map(|source| NdiSource {
-                name: source.get_name(),
-                source,
-            })
-            .collect::<Vec<_>>();
-
-        sender.send(sources)?;
-
-        std::thread::sleep(std::time::Duration::from_secs(5));
-    }
-}
-
 fn recv_ndi_frame(recv: &Recv) -> color_eyre::Result<DynamicImage> {
+    let now = std::time::Instant::now();
     let mut video_data = None;
     let frame_type = recv.capture_video(&mut video_data, u32::MAX);
     match frame_type {
         FrameType::Video => {
             if let Some(video_data) = video_data {
-                tracing::debug!("Received video frame: {video_data:?}");
+                tracing::trace!("Received video frame: {video_data:?}");
                 let size =
                     video_data.height() * video_data.line_stride_in_bytes().unwrap_or_default();
                 color_eyre::eyre::ensure!(!video_data.p_data().is_null(), "Video data was null");
@@ -83,6 +53,9 @@ fn recv_ndi_frame(recv: &Recv) -> color_eyre::Result<DynamicImage> {
                     // }
                     video_type => color_eyre::eyre::bail!("Unsupported video type: {video_type:?}"),
                 };
+
+                let elapsed = now.elapsed();
+                tracing::trace!("Decoded frame in {}ms", elapsed.as_millis());
 
                 Ok(image)
             } else {

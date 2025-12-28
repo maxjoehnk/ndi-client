@@ -1,14 +1,15 @@
 use serde::Deserialize;
+use crate::source_selector::MonitorId;
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config {
     #[serde(rename = "screen")]
     pub screens: Vec<ScreenConfig>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ScreenConfig {
-    pub monitor: String,
+    pub monitor: MonitorId,
     pub source: String,
 }
 

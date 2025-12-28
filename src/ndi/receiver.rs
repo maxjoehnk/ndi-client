@@ -29,19 +29,27 @@ pub fn recv_ndi(callback: impl Fn(DynamicImage), rx: Receiver<Source>) -> color_
 }
 
 fn recv_ndi_frame(recv: &Recv) -> color_eyre::Result<DynamicImage> {
+    let _span = tracing_tracy::client::span!("recv_ndi_frame");
     let now = std::time::Instant::now();
     let mut video_data = None;
-    let frame_type = recv.capture_video(&mut video_data, u32::MAX);
+    let frame_type = {
+        let _span = tracing_tracy::client::span!("Recv::capture_video");
+        recv.capture_video(&mut video_data, u32::MAX)
+    };
     match frame_type {
         FrameType::Video => {
             if let Some(video_data) = video_data {
                 tracing::trace!("Received video frame: {video_data:?}");
-                let size =
-                    video_data.height() * video_data.line_stride_in_bytes().unwrap_or_default();
-                color_eyre::eyre::ensure!(!video_data.p_data().is_null(), "Video data was null");
-                let buffer =
-                    unsafe { std::slice::from_raw_parts(video_data.p_data(), size as usize) };
-                let frame = Vec::from_iter(buffer.to_owned());
+                let frame = {
+                    let _span = tracing_tracy::client::span!("video_data to buffer");
+                    let size =
+                        video_data.height() * video_data.line_stride_in_bytes().unwrap_or_default();
+                    color_eyre::eyre::ensure!(!video_data.p_data().is_null(), "Video data was null");
+                    let buffer =
+                        unsafe { std::slice::from_raw_parts(video_data.p_data(), size as usize) };
+
+                    Vec::from_iter(buffer.to_owned())
+                };
                 let image = match video_data.four_cc() {
                     FourCCVideoType::RGBA | FourCCVideoType::RGBX => {
                         decode::<image::Rgba<u8>>(frame, video_data)
@@ -73,6 +81,7 @@ fn decode<T: Pixel<Subpixel = u8> + 'static>(
     frame: Vec<u8>,
     video_data: VideoData,
 ) -> color_eyre::Result<ImageBuffer<T, Vec<u8>>> {
+    let _span = tracing_tracy::client::span!("decode");
     let image =
         image::ImageBuffer::<T, _>::from_vec(video_data.width(), video_data.height(), frame)
             .ok_or_else(|| color_eyre::eyre::eyre!("Failed to create image"))?;

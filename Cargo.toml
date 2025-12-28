@@ -3,6 +3,9 @@ name = "ndi-client"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+tracy = ["tracing-tracy/enable", "tracing-tracy/broadcast"]
+
 [dependencies]
 ndi = { git = "https://github.com/maxjoehnk/ndi-rs", branch = "feature/ndi-5" }
 winit = "0.30"
@@ -17,3 +20,4 @@ serde = { version = "1.0", features = ["derive"] }
 toml = "0.9"
 keep-active = "0.1"
 dashmap = "6.1"
+tracing-tracy = { version = "0.11" }

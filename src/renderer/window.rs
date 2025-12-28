@@ -49,6 +49,7 @@ impl ApplicationHandler<NdiUserEvent> for NdiClientApp {
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: NdiUserEvent) {
+        let _span = tracing_tracy::client::span!("NdiClientApp::user_event");
         tracing::trace!("Received user event: {:?}", event);
         match event {
             NdiUserEvent::ReceivedFrame(monitor_id, image) => {
@@ -67,6 +68,7 @@ impl ApplicationHandler<NdiUserEvent> for NdiClientApp {
         window_id: WindowId,
         event: WindowEvent,
     ) {
+        let _span = tracing_tracy::client::span!("NdiClientApp::window_event");
         match event {
             WindowEvent::Resized(ref size) => {
                 if let Some(screen) = self.screens.get_mut(&window_id) {
@@ -88,6 +90,7 @@ impl ApplicationHandler<NdiUserEvent> for NdiClientApp {
                         1000.0 / screen.last_redraw.elapsed().as_millis() as f64
                     );
                     screen.last_redraw = std::time::Instant::now();
+                    tracing_tracy::client::frame_mark();
                 };
             }
             WindowEvent::KeyboardInput { event, .. } => {
@@ -222,6 +225,7 @@ impl Screen {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> color_eyre::Result<()> {
+        let _span = tracing_tracy::client::span!("Screen::draw");
         if let Some(image) = self.image.as_mut() {
             self.image_renderer.render(device, queue, image)?;
         }

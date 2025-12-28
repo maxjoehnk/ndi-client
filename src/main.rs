@@ -1,7 +1,7 @@
 use color_eyre::eyre::Context;
 use tracing::metadata::LevelFilter;
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
-
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::layer::SubscriberExt;
 use crate::config::Config;
 use crate::ndi::NdiReceiver;
 use crate::source_selector::SourceSelector;
@@ -45,13 +45,14 @@ async fn main() -> color_eyre::Result<()> {
 }
 
 fn initialize_logger() -> color_eyre::Result<()> {
-    let subscriber = FmtSubscriber::builder()
+    let subscriber = tracing_subscriber::fmt::Subscriber::builder()
         .with_env_filter(
             EnvFilter::builder()
                 .with_default_directive(LevelFilter::INFO.into())
                 .from_env()?,
         )
-        .finish();
+        .finish()
+        .with(tracing_tracy::TracyLayer::default());
     tracing::subscriber::set_global_default(subscriber).context("tracing setup")?;
     Ok(())
 }

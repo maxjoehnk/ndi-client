@@ -40,7 +40,7 @@ impl NdiReceiver {
         send_frame: TCallback,
     ) -> color_eyre::Result<()> {
         std::thread::Builder::new()
-            .name("NDI Receiver".to_string())
+            .name("NdiReceiver".to_string())
             .spawn(move || {
                 let mut receivers = HashMap::new();
 
@@ -88,7 +88,7 @@ impl NdiReceiver {
         on_discovered: TCallback,
     ) -> color_eyre::Result<()> {
         std::thread::Builder::new()
-            .name("NDI Source Discovery".to_string())
+            .name("NDI Discovery".to_string())
             .spawn(|| {
                 if let Err(err) = discovery::discover_sources(sender, on_discovered) {
                     tracing::error!(error = ?err, "NDI Source discovery crashed");
@@ -109,7 +109,7 @@ impl NdiReceiver {
         tx.send(initial_source)?;
 
         std::thread::Builder::new()
-            .name(format!("NDI Receiver {monitor}"))
+            .name(format!("{monitor} Decoder"))
             .spawn(move || {
                 if let Err(err) = receiver::recv_ndi(send_frame, rx) {
                     tracing::error!(error = ?err, "NDI Receiver crashed");

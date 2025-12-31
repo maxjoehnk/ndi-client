@@ -33,6 +33,7 @@ pub struct NdiClientApp {
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
+    synchronize_screens: bool,
 }
 
 impl ApplicationHandler<NdiUserEvent> for NdiClientApp {
@@ -55,7 +56,17 @@ impl ApplicationHandler<NdiUserEvent> for NdiClientApp {
             NdiUserEvent::ReceivedFrame(monitor_id, image) => {
                 if let Some(screen) = self.screens.get_mut(monitor_id.as_ref()) {
                     screen.image = Some(image);
-                    screen.window.request_redraw();
+                    screen.has_new_frame = true;
+
+                    if self.synchronize_screens {
+                        if self.screens.values().all(|s| s.has_new_frame) {
+                            for screen in self.screens.values() {
+                                screen.window.request_redraw();
+                            }
+                        }
+                    } else {
+                        screen.window.request_redraw();
+                    }
                 }
             }
             NdiUserEvent::RefreshedSources => self.launch_monitors(event_loop),
@@ -90,6 +101,7 @@ impl ApplicationHandler<NdiUserEvent> for NdiClientApp {
                         1000.0 / screen.last_redraw.elapsed().as_millis() as f64
                     );
                     screen.last_redraw = std::time::Instant::now();
+                    screen.has_new_frame = false;
                     tracing_tracy::client::frame_mark();
                 };
             }
@@ -104,7 +116,7 @@ impl ApplicationHandler<NdiUserEvent> for NdiClientApp {
 }
 
 impl NdiClientApp {
-    pub async fn new(source_selector: SourceSelector) -> color_eyre::Result<NdiClientApp> {
+    pub async fn new(source_selector: SourceSelector, synchronize_screens: bool) -> color_eyre::Result<NdiClientApp> {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::VULKAN,
             ..Default::default()
@@ -134,6 +146,7 @@ impl NdiClientApp {
             adapter,
             device,
             queue,
+            synchronize_screens,
         })
     }
 
@@ -205,6 +218,7 @@ impl NdiClientApp {
             image_renderer: WgpuImageRenderer::new(&self.device, surface, config, (1920, 1080))
                 .unwrap(),
             last_redraw: std::time::Instant::now(),
+            has_new_frame: false,
         };
 
         self.screens.insert(window_id, screen);
@@ -217,6 +231,7 @@ pub struct Screen {
     window: Window,
     image_renderer: WgpuImageRenderer,
     last_redraw: std::time::Instant,
+    has_new_frame: bool,
 }
 
 impl Screen {

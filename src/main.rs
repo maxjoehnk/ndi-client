@@ -18,12 +18,12 @@ async fn main() -> color_eyre::Result<()> {
     let config = Config::read()?;
 
     let (refreshed_sources_tx, refreshed_sources_rx) = std::sync::mpsc::channel::<()>();
-    let source_selector = SourceSelector::new(config);
+    let source_selector = SourceSelector::new(config.clone());
 
     let ndi_receiver = NdiReceiver::new(source_selector.clone(), move || {
         let _ = refreshed_sources_tx.send(());
     })?;
-    let renderer = renderer::Renderer::new(source_selector).await?;
+    let renderer = renderer::Renderer::new(source_selector, config.as_ref()).await?;
 
     let proxy = renderer.create_proxy();
     ndi_receiver.listen(move |monitor_id, frame| {

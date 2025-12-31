@@ -3,6 +3,8 @@ use crate::source_selector::MonitorId;
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config {
+    #[serde(default)]
+    pub synchronize_screens: bool,
     #[serde(rename = "screen")]
     pub screens: Vec<ScreenConfig>,
 }

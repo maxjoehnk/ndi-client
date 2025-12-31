@@ -1,4 +1,5 @@
 use winit::event_loop::{ControlFlow, EventLoop};
+use crate::config::Config;
 use crate::renderer::window::NdiClientApp;
 use crate::source_selector::SourceSelector;
 use self::window::NdiUserEvent;
@@ -14,9 +15,15 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub async fn new(source_selector: SourceSelector) -> color_eyre::Result<Self> {
+    pub async fn new(source_selector: SourceSelector, config: Option<&Config>) -> color_eyre::Result<Self> {
+        let synchronize_screens = config.map(|config| config.synchronize_screens).unwrap_or_default();
+
+        if synchronize_screens {
+            tracing::info!("Synchronizing screens by blocking rendering until all screens have received a new frame");
+        }
+
         let event_loop = winit::event_loop::EventLoop::<NdiUserEvent>::with_user_event().build()?;
-        let app = NdiClientApp::new(source_selector).await?;
+        let app = NdiClientApp::new(source_selector, synchronize_screens).await?;
         let keep_awake = keep_screen_awake();
 
         Ok(Self { event_loop, app, keep_awake })
